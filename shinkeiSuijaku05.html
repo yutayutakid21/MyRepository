@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset = "utf-8" />
+<meta name = "format-detection" content = "telephone=no">
+<meta name = "format-detection" content = "email=no">
+<meta http-equive = "expres" content = "-1">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" type="text/css" href="css/reset.css">
+<script src="js/jquery-1.11.3.min.js"></script>
+<script src = "js/plugins/jquery.easing.1.3.js"></script>
+<script src = "js/plugins/jquery.transit.js"></script>
+<style>
+	ul.trump{
+		//width: 425px;
+		width: 320px;
+		height: auto;
+		margin: auto;
+		display: block;
+		overflow: hidden;
+	}
+	ul.trump li{
+		float: left;
+		margin: 5px;
+		//width: 80px;
+		width: 70px;
+		//height: 100px;
+		height: 90px;
+		position: relative;
+	}
+	ul.trump li img{
+		//width: 80px;
+		width: 70px;
+		//height: 100px;
+		height: 90px;
+	}
+	ul.trump li img.back{
+		position: absolute;
+		z-index: 1;
+	}
+	ul.trump li img.front{
+		//width: 80px;
+		width: 70px;
+		//height: 100px;
+		height: 90px;
+		position: absolute;
+		z-index: 0;
+	}
+</style>
+</head>
+<body>
+	<div id="animation_base">
+		<p id="pair">ペアは<span id="pairs">0</span>組</p>
+		<ul class="trump">
+		</ul>
+	</div><!--animation-->
+	<!--
+	<button id="start">ボタン</button>
+	-->
+</body>
+<script>
+jQuery(function ($){
+	var tapCount = 0;
+	var card = "";
+	var set = 0;		//連続タップ禁止用フラグ
+	var self = "";
+	var cardSelf = "";
+	var cardNum1 = "";
+	var cardNum2 = "";
+	var pairCount = 0;
+	var first=0;
+	var second=0;
+
+	var f = $.fx.interval = 33;
+	var d = new $.Deferred();
+
+	var ajaxer = function(ajaxPath){
+		var date = new Date().getTime();
+		var data = {date:date};
+		var url = "shinkeiSuijaku.json";
+		cardCount=0;
+
+		$.ajax({
+			url: url,
+			type: "POST",
+			dataType: "json",
+			data: data,
+			cahe: false,
+			headers: {
+				"pragma": "no-cache"
+			},
+			success: function(msg){
+				for(i=0; i< msg.card.length; i++){
+					//console.log(msg.card[i].mark + msg.card[i].number);
+					$('ul.trump').append('<li class="close" id="'+ msg.card[i].mark + msg.card[i].number +'"data-num="'+ msg.card[i].number +'""><img class="back" src="img/png/z02.png" alt="トランプ裏"><img class="front" src="img/png/'+ msg.card[i].mark + msg.card[i].number +'.png" alr="トランプ表"></li>');
+				}
+			},
+			error: function(){
+				console.log("error");
+			},
+			complete: function(msg){
+				('fin');
+			}
+
+		});
+
+	}
+
+	ajaxer();
+
+
+	$.extend({
+		processing:{
+			openCard: function(){
+				self = $('#' + card);
+				//tapCount++;
+				//カードをめくるスピードはHANGAMEのですティニーモンスターズ他、スマホのアプリを参考にした。
+				return $.when(
+					self.transition({
+						transform: "scale(0,1.0)"
+					},f*5)
+				)
+				.then(function(){
+					self.addClass('open');
+					self.children('img.back').transition({
+						display: "none"
+					}, f*5);
+					self.children("img.front").transition({
+						display: "block"
+					});self. transition({
+						transform: "scale(1, 1.0)"
+					}, f*5)
+				})
+				.then(function(){
+					$.processing.getNum()
+				})
+			},
+			getNum: function(){
+				//console.log("getNum");
+				console.log(tapCount + " :tapCount");
+				if(tapCount<2){
+					first = self;
+					cardNum1 = num;
+					console.log(cardNum1 + " :cardNum1");
+					set = 0;
+					return false;
+				}else{
+					second = self;
+					cardNum2 = num;
+					console.log(cardNum2 + "cardNum2");
+					set = 1;
+					$.processing.check();
+				}
+			},
+			check: function(){
+				//console.log("check");
+				tapCount = 0;
+				if(cardNum1 == cardNum2){
+					console.log('ok');
+					setTimeout(function(){
+						alert('おめでとう');
+					},500);
+					$.processing.correct();
+				}else{
+					console.log('no');
+					setTimeout(function(){
+						alert('はずれ');
+					},500);
+					setTimeout(function(){
+						$.processing.difference();
+					},1000)
+					
+				}
+			},
+			correct: function(){
+				//console.log("correct");
+				pairCount++;
+				$('#pairs').text(pairCount);
+				$.processing.reset();
+			},
+			difference: function(){
+				//console.log("difference");
+				
+				return $.when(
+					first.transition({
+						transform: "scale(0, 1.0)"
+					}, f*5),
+
+					second.transition({
+						transform: "scale(0, 1.0)"
+					}, f*5)
+				)
+				.then(function(){
+					first.removeClass("open");
+					first.children('img.front').transition({
+						display: "none"
+					});
+					first.children('img.back').transition({
+						display: "block"
+					});
+					first.transition({
+						transform: "scale(1, 1.0)"
+					}, f*5),
+
+					second.removeClass("open");
+					second.children('img.front').transition({
+						display: "none"
+					});
+					second.children('img.back').transition({
+						display: "block"
+					});
+					second.transition({
+						transform: "scale(1, 1.0)"
+					}, f*5)
+				})
+				.then(function(){
+					$.processing.reset();
+				})
+			},
+			reset: function(){
+				console.log('reset');
+				set = 0;
+				cardNum1 = 0;
+				cardNum2 = 0;
+				tapCount = 0;
+				console.log(cardNum1 + " " + cardNum2);
+			}
+		}
+	});
+
+	//数字を変数numに代入
+	var setCheck = function(card){
+		//変数numにカードの数字を代入
+		num = cardSelf.data('num');
+		console.log(num);
+		console.log(set + " set");
+		tapCount++;
+		return $.processing.openCard();
+	}
+
+	//連続タップ禁止用
+	$('ul.trump').on("click", ".close", function(){
+		//console.log('aaa');
+		if($(this).hasClass('open')){
+			console.log("openError");
+			return false;
+		}
+		if(set==0){
+			//連続タップ禁止用flagを1にする
+			set++;
+			console.log($(this));
+			console.log('--------------');
+			card = this.id;
+			console.log(card + " :card");
+			cardSelf = $(this);
+			console.log(cardSelf + ":cardSelf");
+			return setCheck();
+		}else{
+			console.log('error');
+		}
+	});
+
+	d.resolve();
+	return d.promise();
+
+
+});
+</script>
+</html>
